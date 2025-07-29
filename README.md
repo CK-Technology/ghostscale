@@ -1,7 +1,8 @@
 # ghostscale
 
+
 <div align="center">
-  <img src="assets/ghostscale_logo.png" alt="ghostscale logo" width="128" height="128">
+  <img src="assets/icons/ghostscale-icon.png" alt="ghostscale icon" width="128" height="128">
 
 **Secure, Programmable Overlay Networking Tool built on Tailscale**
 
