@@ -3,6 +3,7 @@ const flash = @import("flash");
 const expose = @import("commands/expose.zig");
 const dns = @import("commands/dns.zig");
 const route = @import("commands/route.zig");
+const register = @import("commands/register.zig");
 
 const GhostscaleCLI = flash.CLI(.{
     .name = "ghostscale",
@@ -21,6 +22,9 @@ pub fn run(allocator: std.mem.Allocator, args: []const []const u8) !void {
         flash.Command.init("route", (flash.CommandConfig{})
             .withAbout("Route management and automation")
             .withHandler(route.handler)),
+        flash.Command.init("register", (flash.CommandConfig{})
+            .withAbout("Register ghost services with Tailscale")
+            .withHandler(register.handler)),
     };
 
     var cli = GhostscaleCLI.init(allocator, (flash.CommandConfig{})

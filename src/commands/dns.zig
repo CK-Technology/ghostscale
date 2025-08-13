@@ -16,11 +16,13 @@ const DNSProvider = enum {
     powerdns,
     technitium,
     bind9,
+    ghostdns,
     
     pub fn fromString(str: []const u8) ?DNSProvider {
         if (std.mem.eql(u8, str, "powerdns")) return .powerdns;
         if (std.mem.eql(u8, str, "technitium")) return .technitium;
         if (std.mem.eql(u8, str, "bind9")) return .bind9;
+        if (std.mem.eql(u8, str, "ghostdns")) return .ghostdns;
         return null;
     }
 };
@@ -34,10 +36,11 @@ pub fn run(allocator: std.mem.Allocator, args: []const []const u8) !void {
     defer app.deinit();
 
     var sync_cmd = flash.Command.init("sync", "Synchronize Tailscale hostnames to DNS provider");
-    try sync_cmd.add_option("output", "DNS provider (powerdns, technitium, bind9)");
+    try sync_cmd.add_option("output", "DNS provider (powerdns, technitium, bind9, ghostdns)");
     try sync_cmd.add_option("zone", "DNS zone to update");
     try sync_cmd.add_option("api-key", "API key for DNS provider");
     try sync_cmd.add_option("server", "DNS server URL");
+    try sync_cmd.add_option("ghostdns-endpoint", "GhostDNS API endpoint (default: http://localhost:8080)");
     try app.add_command(sync_cmd);
 
     var export_cmd = flash.Command.init("export", "Export DNS records in various formats");
@@ -97,6 +100,7 @@ fn syncDNS(allocator: std.mem.Allocator, provider: DNSProvider, cmd: flash.Parse
         .powerdns => try syncPowerDNS(allocator, status, zone, cmd),
         .technitium => try syncTechnitium(allocator, status, zone, cmd),
         .bind9 => try syncBind9(allocator, status, zone, cmd),
+        .ghostdns => try syncGhostDNS(allocator, status, zone, cmd),
     }
 
     std.debug.print("DNS synchronization completed successfully.\n");
@@ -224,6 +228,47 @@ fn exportCSV(_: std.mem.Allocator, status: tailscale.TailscaleStatus, filename: 
             try writer.print("{s},A,{s},{}\n", .{ peer.hostname, peer.addresses[0], peer.online });
         }
     }
+}
+
+fn syncGhostDNS(allocator: std.mem.Allocator, status: tailscale.TailscaleStatus, zone: []const u8, cmd: flash.ParsedCommand) !void {
+    const endpoint = cmd.get_option("ghostdns-endpoint") orelse "http://localhost:8080";
+    
+    std.debug.print("GhostDNS sync: Registering {} devices with GhostDNS at {s}\n", .{ status.peers.len + 1, endpoint });
+    
+    var client = std.http.Client{ .allocator = allocator };
+    defer client.deinit();
+
+    // Register self
+    try registerDeviceWithGhostDNS(allocator, &client, endpoint, status.self.hostname, status.self.addresses[0], zone, "self");
+    
+    // Register peers
+    for (status.peers) |peer| {
+        if (peer.addresses.len > 0) {
+            const device_type = if (peer.online) "peer" else "offline_peer";
+            try registerDeviceWithGhostDNS(allocator, &client, endpoint, peer.hostname, peer.addresses[0], zone, device_type);
+        }
+    }
+}
+
+fn registerDeviceWithGhostDNS(allocator: std.mem.Allocator, client: *std.http.Client, endpoint: []const u8, hostname: []const u8, ip: []const u8, zone: []const u8, device_type: []const u8) !void {
+    const full_domain = try std.fmt.allocPrint(allocator, "{s}.{s}", .{ hostname, zone });
+    defer allocator.free(full_domain);
+    
+    const record_json = try std.fmt.allocPrint(
+        allocator,
+        "{{\"action\":\"register\",\"domain\":\"{s}\",\"type\":\"A\",\"value\":\"{s}\",\"ttl\":300,\"metadata\":{{\"device_type\":\"{s}\",\"managed_by\":\"ghostscale\"}}}}",
+        .{ full_domain, ip, device_type }
+    );
+    defer allocator.free(record_json);
+    
+    const api_url = try std.fmt.allocPrint(allocator, "{s}/api/v1/records", .{endpoint});
+    defer allocator.free(api_url);
+    
+    std.debug.print("  Registering: {s} -> {s}\n", .{ full_domain, ip });
+    
+    // TODO: Implement actual HTTP POST request
+    // For now, just print what would be sent
+    std.debug.print("  POST {s}: {s}\n", .{ api_url, record_json });
 }
 
 fn showDNSStatus(allocator: std.mem.Allocator) !void {
