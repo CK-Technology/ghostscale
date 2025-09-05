@@ -16,7 +16,7 @@ pub fn run(allocator: std.mem.Allocator, args: []const []const u8) !void {
     var app = flash.App.init(allocator, .{
         .name = "ghostscale route",
         .description = "Route management and automation",
-        .version = "0.1.0",
+        .version = "0.1.1",
     });
     defer app.deinit();
 

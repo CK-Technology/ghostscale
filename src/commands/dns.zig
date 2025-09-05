@@ -31,7 +31,7 @@ pub fn run(allocator: std.mem.Allocator, args: []const []const u8) !void {
     var app = flash.App.init(allocator, .{
         .name = "ghostscale dns",
         .description = "DNS management and synchronization",
-        .version = "0.1.0",
+        .version = "0.1.1",
     });
     defer app.deinit();
 
@@ -250,7 +250,7 @@ fn syncGhostDNS(allocator: std.mem.Allocator, status: tailscale.TailscaleStatus,
     }
 }
 
-fn registerDeviceWithGhostDNS(allocator: std.mem.Allocator, client: *std.http.Client, endpoint: []const u8, hostname: []const u8, ip: []const u8, zone: []const u8, device_type: []const u8) !void {
+fn registerDeviceWithGhostDNS(allocator: std.mem.Allocator, _: *std.http.Client, endpoint: []const u8, hostname: []const u8, ip: []const u8, zone: []const u8, device_type: []const u8) !void {
     const full_domain = try std.fmt.allocPrint(allocator, "{s}.{s}", .{ hostname, zone });
     defer allocator.free(full_domain);
     

@@ -7,7 +7,7 @@ const register = @import("commands/register.zig");
 
 const GhostscaleCLI = flash.CLI(.{
     .name = "ghostscale",
-    .version = "0.1.0",
+    .version = "0.1.1",
     .about = "Secure, Programmable Overlay Networking Tool built on Tailscale",
 });
 

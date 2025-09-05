@@ -14,7 +14,7 @@ pub fn run(allocator: std.mem.Allocator, args: []const []const u8) !void {
     var app = flash.App.init(allocator, .{
         .name = "ghostscale register",
         .description = "Register ghost services with Tailscale",
-        .version = "0.1.0",
+        .version = "0.1.1",
     });
     defer app.deinit();
 
@@ -29,7 +29,7 @@ pub fn run(allocator: std.mem.Allocator, args: []const []const u8) !void {
     try discover_cmd.add_option("type", "Filter by service type (optional)");
     try app.add_command(discover_cmd);
 
-    var status_cmd = flash.Command.init("status", "Show ghost service registration status");
+    const status_cmd = flash.Command.init("status", "Show ghost service registration status");
     try app.add_command(status_cmd);
 
     const matches = app.parse(args) catch |err| switch (err) {
